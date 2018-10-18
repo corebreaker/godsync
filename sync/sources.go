@@ -11,15 +11,24 @@ import (
 type tSource struct {
 	Path string
 	Name string
+    Root string
 }
 
-func scanDir(src tSource, writer chan<- *tFileList) {
+func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
+	defer done()
+
 	walker := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		dest_files[path] = &info
+        if info.IsDir() {
+            writer <- &FileDesc{
+                Path: path,
+                Name: filepath.Re
+            }
+            return nil
+        }
 
 		return nil
 	}
@@ -29,12 +38,6 @@ func scanDir(src tSource, writer chan<- *tFileList) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-//dir_to_scan, dest
-// dir_to_scan <= getRoot(root, dirpath)
-func scanSource(src tSource, writer chan<- *tFileList, done func()) {
-	defer done()
 }
 
 func ScanSources(root string, dirs []string) []*FileDesc {
@@ -57,8 +60,6 @@ func ScanSources(root string, dirs []string) []*FileDesc {
             Name: dirname,
             Path: dirpath,
         }
-
-
 	}
 
 	var wg sync.WaitGroup
@@ -67,9 +68,9 @@ func ScanSources(root string, dirs []string) []*FileDesc {
 	wr := list.writer()
 	defer close(wr)
 
-	for _, dir := range dirs {
+	for _, src := range registry {
 		wg.Add(1)
-		go scanSource(root, dir, wr, wg.Done)
+		go scanSource(src, wr, wg.Done)
 	}
 
 	wg.Wait()
