@@ -9,9 +9,9 @@ import (
 )
 
 type tSource struct {
-	Path string
-	Name string
-    Root string
+	Path string // Absolute path of the source directory
+	Name string //
+	Root string // Name of the source directory used root directory in destination directory
 }
 
 func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
@@ -22,18 +22,20 @@ func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
 			return err
 		}
 
-        if info.IsDir() {
-            writer <- &FileDesc{
-                Path: path,
-                Name: filepath.Re
-            }
-            return nil
-        }
+		if info.IsDir() {
+			writer <- &FileDesc{
+				Path:  path,
+				Root:  src.Root,
+				IsDir: true,
+			}
+
+			return nil
+		}
 
 		return nil
 	}
 
-	err := filepath.Walk(filepath.Join(dest, filepath.Base(src)), walker)
+	err := filepath.Walk(src.Path, walker)
 
 	if err != nil {
 		panic(err)
@@ -41,7 +43,7 @@ func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
 }
 
 func ScanSources(root string, dirs []string) []*FileDesc {
-    registry := make(map[string]*tSource)
+	registry := make(map[string]*tSource)
 
 	for _, dir := range dirs {
 		dirpath := dir
@@ -51,15 +53,15 @@ func ScanSources(root string, dirs []string) []*FileDesc {
 			dirpath = filepath.Clean(filepath.Join(root, dirpath))
 		}
 
-        prev := registry[dirname]
-        if prev != nil {
+		prev := registry[dirname]
+		if prev != nil {
 
-        }
+		}
 
-        src := &tSource{
-            Name: dirname,
-            Path: dirpath,
-        }
+		src := &tSource{
+			Name: dirname,
+			Path: dirpath,
+		}
 	}
 
 	var wg sync.WaitGroup
