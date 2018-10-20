@@ -17,6 +17,9 @@ type tSource struct {
 func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
 	defer done()
 
+	prefixSize := len([]rune(src.Path)) + 1
+	batch := newHashingBatch()
+
 	walker := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -32,14 +35,26 @@ func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
 			return nil
 		}
 
+		desc := &FileDesc{
+			Path:  path,
+			Name:  string([]rune(path)[prefixSize:]),
+			Root:  src.Root,
+			Size:  uint64(info.Size()),
+			IsDir: false,
+			Date:  info.ModTime(),
+		}
+
+		batch.add(desc)
+		writer <- desc
+
 		return nil
 	}
 
-	err := filepath.Walk(src.Path, walker)
-
-	if err != nil {
+	if err := filepath.Walk(src.Path, walker); err != nil {
 		panic(err)
 	}
+
+	batch.wait()
 }
 
 func ScanSources(root string, dirs []string) []*FileDesc {
