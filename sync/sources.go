@@ -2,9 +2,11 @@ package sync
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -59,24 +61,45 @@ func scanSource(src tSource, writer chan<- *FileDesc, done func()) {
 
 func ScanSources(root string, dirs []string) []*FileDesc {
 	registry := make(map[string]*tSource)
+	counters := make(map[string]uint)
 
 	for _, dir := range dirs {
 		dirpath := dir
 		dirname := filepath.Base(dirpath)
 
-		if !filepath.IsAbs(dir) {
+		idx := strings.IndexByte(dir, ':')
+		if idx > 0 {
+			dirpath = dir[(idx + 1):]
+			dirname = dir[:idx]
+		}
+
+		if !filepath.IsAbs(dirpath) {
 			dirpath = filepath.Clean(filepath.Join(root, dirpath))
 		}
 
 		prev := registry[dirname]
 		if prev != nil {
+			cnt, exists := counters[dirname]
+			if exists {
+				cnt++
 
+				prev.Root += "_1"
+				registry[prev.Root] = prev
+			} else {
+				cnt = 2
+			}
+
+			counters[dirname] = cnt
+			dirname += fmt.Sprintf("_%d", cnt)
 		}
 
 		src := &tSource{
 			Name: dirname,
+			Root: dirname,
 			Path: dirpath,
 		}
+
+		registry[src.Root] = src
 	}
 
 	var wg sync.WaitGroup
