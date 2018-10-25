@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -110,7 +109,7 @@ func ScanSources(root string, dirs []string) []*FileDesc {
 
 	for _, src := range registry {
 		wg.Add(1)
-		go scanSource(src, wr, wg.Done)
+		go scanSource(*src, wr, wg.Done)
 	}
 
 	wg.Wait()
