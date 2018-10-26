@@ -18,10 +18,6 @@ type Arg struct {
 func (a *Arg) String() string     { return a.value }
 func (a *Arg) Set(v string) error { a.value = v; a.set = true; return nil }
 
-var (
-	dest Arg
-)
-
 func main() {
 	defer func() {
 		err := recover()
@@ -29,37 +25,38 @@ func main() {
 			return
 		}
 
-		fmt.Fprintln(flag.CommandLine.Output())
-		fmt.Fprintln(flag.CommandLine.Output(), err)
-		fmt.Fprintln(flag.CommandLine.Output())
+		out := flag.CommandLine.Output()
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, err)
+		fmt.Fprintln(out)
 	}()
 
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-dest value] srcdir1 [srcdir2 [...]]", os.Args[0])
-		fmt.Fprintln(flag.CommandLine.Output())
-		fmt.Fprintln(flag.CommandLine.Output(), "  srcdir1, ..., srcdirN: sources directories")
-		fmt.Fprintln(flag.CommandLine.Output())
+		out := flag.CommandLine.Output()
+
+		fmt.Fprintf(out, "Usage: %s [-dest dirpath] [-root rootpath] srcdir1 [srcdir2 [...]]", os.Args[0])
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "  srcdir1, ..., srcdirN: source directories")
+		fmt.Fprintln(out)
 
 		flag.PrintDefaults()
 	}
 
+	var dest, base Arg
+
 	flag.Var(&dest, "dest", "Set the destination directory")
+	flag.Var(&base, "base", "Set the base directory for all source directories")
 	flag.Parse()
 
-	if !dest.set {
-		fmt.Fprintln(flag.CommandLine.Output(), "No destination specified")
-		fmt.Fprintln(flag.CommandLine.Output())
-
-		flag.Usage()
-
-		return
-	}
-
 	checkdir("destination", dest.value)
+	checkdir("source base", base.value)
 
 	if flag.NArg() == 0 {
-		fmt.Fprintln(flag.CommandLine.Output(), "No source specified")
-		fmt.Fprintln(flag.CommandLine.Output())
+		out := flag.CommandLine.Output()
+
+		fmt.Fprintln(out, "No source specified")
+		fmt.Fprintln(out)
 
 		flag.Usage()
 
